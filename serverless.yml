@@ -1,0 +1,39 @@
+service: poc-bref-api
+
+provider:
+  name: aws                             # Car nous utilisons AWS :)
+  region: eu-west-1			          # Paris
+  runtime: provided.al2			          # Car nous utilisons le runtime PHP de Bref
+  environment:				          # Variables d'environement Symfony
+    APP_ENV: prod
+  vpc:
+    securityGroupIds:
+      - sg-01b07b9752b90a572
+    subnetIds:
+      - subnet-090f645b6d05d6009
+      - subnet-041b18b16e8ae34da
+      - subnet-01456a1433585f3de
+
+plugins:
+  - ./vendor/bref/bref		          # Plugin bref installé avec composer
+
+package:
+  exclude:					          # Fichier exclus car non nécessaires pour
+    - node_modules/**		          # l'exécution de notre fonction
+    - tests/**
+
+functions:
+  website:                              # Première fonction exposée
+    handler: public/index.php         # Point d'entrée
+    timeout: 28 			          # en secondes (timeout de 29s chez AWS)
+    layers:                           # Runtime utilisé
+      - ${bref:layer.php-81-fpm}    # liste ici : https://bref.sh/docs/runtimes/index.html
+    events:
+      -   http: 'ANY /'             # Evènements écoutés
+      -   http: 'ANY /{proxy+}'
+  console:                              # Bonus, la console est aussi exposée
+    handler: bin/console
+    timeout: 120 # in seconds
+    layers:
+      - ${bref:layer.php-81} # PHP
+      - ${bref:layer.console} # The "console" layer
